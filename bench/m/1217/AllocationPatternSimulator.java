@@ -661,7 +661,7 @@ public class AllocationPatternSimulator {
                 startLatch.await();
                 List<ByteBuf> buffers = new ArrayList<>();
                 while (!stopCondition.get()) {
-//                    Thread.sleep(1); // Uncomment to simulate a more intense workload.
+//                    Thread.sleep(1); // Comment to simulate a more intense workload.
                     int freqChoice = rng.nextInt(0, sumFrequency);
                     int choiceIndex = Arrays.binarySearch(cumulativeFrequency, freqChoice);
                     if (choiceIndex < 0) {
