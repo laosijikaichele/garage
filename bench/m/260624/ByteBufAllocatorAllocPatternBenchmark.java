@@ -265,7 +265,6 @@ public class ByteBufAllocatorAllocPatternBenchmark {
                 printNetDataRSS();
             }
             releaseBufferArray(buffers);
-            Thread.sleep(5000);
         }
     }
 
