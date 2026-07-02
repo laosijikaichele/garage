@@ -266,8 +266,8 @@ public class ByteBufAllocatorAllocPatternBenchmark {
         }
 
         private static void printProcRSS() throws Exception {
-            System.out.println("cRSS-pRSS:[" + ProcessMemoryUtil.getSelfRssKb() + ", " +
-                    ProcessMemoryUtil.getSelfPeakRssKb() + "]");
+            System.out.println("cRSS-pRSS:[" + ProcessMemoryUtil.getSelfRssKb() / 1024 + ", " +
+                    ProcessMemoryUtil.getSelfPeakRssKb() / 1024 + "]");
         }
 
         @TearDown
