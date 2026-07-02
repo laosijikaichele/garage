@@ -273,8 +273,8 @@ public class ByteBufAllocatorAllocPatternBenchmark {
         @TearDown
         public void tearDown(BenchmarkParams benchmarkParams) throws Exception {
             if (benchParamsSet.add(benchmarkParams)) {
-                printNetDataRSS();
-                printProcRSS();
+                // printNetDataRSS();
+                 printProcRSS();
             }
             releaseBufferArray(buffers);
         }
