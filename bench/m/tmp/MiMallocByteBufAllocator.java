@@ -2129,7 +2129,8 @@ final class MiMallocByteBufAllocator {
                 long lockStamp;
                 ableExpansion = currentHeapsScanLength < MAX_SHARED_HEAP_WRAPS_LENGTH;
                 int attempts = ableExpansion ?
-                        Math.min(currentHeapsScanLength << 1, MAX_SHARED_HEAP_LOCK_SPIN_COUNT) :
+//                        Math.min(currentHeapsScanLength << 1, MAX_SHARED_HEAP_LOCK_SPIN_COUNT) :
+                        Math.max(1, Integer.numberOfTrailingZeros(~mask)) :
                         MAX_SHARED_HEAP_LOCK_SPIN_COUNT;
                 for (int i = 0; i < attempts; i++) {
                     sharedHeapWrap = this.sharedHeapWraps[index + i & mask];
