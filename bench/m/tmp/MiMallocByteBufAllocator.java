@@ -374,7 +374,7 @@ final class MiMallocByteBufAllocator {
         private final ArrayDequeBounded<MiByteBuf> miBufLocalDeque;
         private final Queue<MiByteBuf> miBufCrossThreadsQueue;
         private final ArrayDequeBounded<Block> blockDeque;
-        private final Queue<DelayedBlock> delayedBlockDeque;
+//        private final Queue<DelayedBlock> delayedBlockDeque;
 
         LocalHeap(MiMallocByteBufAllocator allocator, StampedLock sharedLock) {
             segmentTld = new SegmentTld();
@@ -386,7 +386,7 @@ final class MiMallocByteBufAllocator {
             this.miBufLocalDeque = new ArrayDequeBounded<MiByteBuf>(1024);
             this.miBufCrossThreadsQueue = PlatformDependent.newFixedMpscQueue(1024);
             this.blockDeque = new ArrayDequeBounded<Block>(1024);
-            this.delayedBlockDeque = PlatformDependent.newFixedMpmcQueue(1024);
+//            this.delayedBlockDeque = PlatformDependent.newFixedMpmcQueue(1024);
             pageQueues = new PageQueue[] {
                     new PageQueue(1, 0), // placeholder, not used.
                     new PageQueue(1, 1), new PageQueue(2, 2),
@@ -446,7 +446,7 @@ final class MiMallocByteBufAllocator {
                 this.blockDeque.clear();
                 this.miBufLocalDeque.clear();
                 this.miBufCrossThreadsQueue.clear();
-                this.delayedBlockDeque.clear();
+//                this.delayedBlockDeque.clear();
                 freeReservedSegment();
             }
             // Free all current thread's delayed blocks.
@@ -549,10 +549,10 @@ final class MiMallocByteBufAllocator {
                         delayedBlock.nextDelayedBlock = current;
                     } while (!this.threadDelayedFreeList.compareAndSet(current, delayedBlock));
                 } else {
-                    delayedBlock.page = null;
-                    delayedBlock.block = null;
-                    delayedBlock.nextDelayedBlock = null;
-                    this.delayedBlockDeque.offer(delayedBlock);
+//                    delayedBlock.page = null;
+//                    delayedBlock.block = null;
+//                    delayedBlock.nextDelayedBlock = null;
+//                    this.delayedBlockDeque.offer(delayedBlock);
                 }
                 delayedBlock = next;
             }
@@ -780,12 +780,13 @@ final class MiMallocByteBufAllocator {
 
         private DelayedBlock getDelayedBlock(Page page, Block block) {
             DelayedBlock delayedBlock;
-            if ((delayedBlock = delayedBlockDeque.poll()) != null) {
-                delayedBlock.page = page;
-                delayedBlock.block = block;
-            } else {
-                delayedBlock =  new DelayedBlock(page, block);
-            }
+//            if ((delayedBlock = delayedBlockDeque.poll()) != null) {
+//                delayedBlock.page = page;
+//                delayedBlock.block = block;
+//            } else {
+//                delayedBlock =  new DelayedBlock(page, block);
+//            }
+            delayedBlock =  new DelayedBlock(page, block);
             return delayedBlock;
         }
 
