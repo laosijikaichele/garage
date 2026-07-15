@@ -294,23 +294,23 @@ final class MiMallocByteBufAllocator {
 
     static final class SegmentTld {
         private final SpanQueue[] spanQueues = new SpanQueue[] {
-                new SpanQueue(1, 0), // placeholder, not used.
-                new SpanQueue(1, 1), new SpanQueue(2, 2),
-                new SpanQueue(3, 3), new SpanQueue(4, 4),
-                new SpanQueue(5, 5), new SpanQueue(6, 6),
-                new SpanQueue(7, 7), new SpanQueue(10, 8),
-                new SpanQueue(12, 9), new SpanQueue(14, 10),
-                new SpanQueue(16, 11), new SpanQueue(20, 12),
-                new SpanQueue(24, 13), new SpanQueue(28, 14),
-                new SpanQueue(32, 15), new SpanQueue(40, 16),
-                new SpanQueue(48, 17), new SpanQueue(56, 18),
-                new SpanQueue(64, 19), new SpanQueue(80, 20),
-                new SpanQueue(96, 21), new SpanQueue(112, 22),
-                new SpanQueue(128, 23), new SpanQueue(160, 24),
-                new SpanQueue(192, 25), new SpanQueue(224, 26),
-                new SpanQueue(256, 27), new SpanQueue(320, 28),
-                new SpanQueue(384, 29), new SpanQueue(448, 30),
-                new SpanQueue(512, SPAN_QUEUE_MAX_INDEX)
+            new SpanQueue(1, 0), // placeholder, not used.
+            new SpanQueue(1, 1), new SpanQueue(2, 2),
+            new SpanQueue(3, 3), new SpanQueue(4, 4),
+            new SpanQueue(5, 5), new SpanQueue(6, 6),
+            new SpanQueue(7, 7), new SpanQueue(10, 8),
+            new SpanQueue(12, 9), new SpanQueue(14, 10),
+            new SpanQueue(16, 11), new SpanQueue(20, 12),
+            new SpanQueue(24, 13), new SpanQueue(28, 14),
+            new SpanQueue(32, 15), new SpanQueue(40, 16),
+            new SpanQueue(48, 17), new SpanQueue(56, 18),
+            new SpanQueue(64, 19), new SpanQueue(80, 20),
+            new SpanQueue(96, 21), new SpanQueue(112, 22),
+            new SpanQueue(128, 23), new SpanQueue(160, 24),
+            new SpanQueue(192, 25), new SpanQueue(224, 26),
+            new SpanQueue(256, 27), new SpanQueue(320, 28),
+            new SpanQueue(384, 29), new SpanQueue(448, 30),
+            new SpanQueue(512, SPAN_QUEUE_MAX_INDEX)
         };
     }
 
@@ -374,7 +374,7 @@ final class MiMallocByteBufAllocator {
         private final ArrayDequeBounded<MiByteBuf> miBufLocalDeque;
         private final Queue<MiByteBuf> miBufCrossThreadsQueue;
         private final ArrayDequeBounded<Block> blockDeque;
-//        private final Queue<DelayedBlock> delayedBlockDeque;
+        private final Queue<DelayedBlock> delayedBlockDeque;
 
         LocalHeap(MiMallocByteBufAllocator allocator, StampedLock sharedLock) {
             segmentTld = new SegmentTld();
@@ -386,7 +386,7 @@ final class MiMallocByteBufAllocator {
             this.miBufLocalDeque = new ArrayDequeBounded<MiByteBuf>(1024);
             this.miBufCrossThreadsQueue = PlatformDependent.newFixedMpscQueue(1024);
             this.blockDeque = new ArrayDequeBounded<Block>(1024);
-//            this.delayedBlockDeque = PlatformDependent.newFixedMpmcQueue(1024);
+            this.delayedBlockDeque = PlatformDependent.newFixedMpmcQueue(1024);
             pageQueues = new PageQueue[] {
                     new PageQueue(1, 0), // placeholder, not used.
                     new PageQueue(1, 1), new PageQueue(2, 2),
@@ -446,7 +446,7 @@ final class MiMallocByteBufAllocator {
                 this.blockDeque.clear();
                 this.miBufLocalDeque.clear();
                 this.miBufCrossThreadsQueue.clear();
-//                this.delayedBlockDeque.clear();
+                this.delayedBlockDeque.clear();
                 freeReservedSegment();
             }
             // Free all current thread's delayed blocks.
@@ -549,10 +549,10 @@ final class MiMallocByteBufAllocator {
                         delayedBlock.nextDelayedBlock = current;
                     } while (!this.threadDelayedFreeList.compareAndSet(current, delayedBlock));
                 } else {
-//                    delayedBlock.page = null;
-//                    delayedBlock.block = null;
-//                    delayedBlock.nextDelayedBlock = null;
-//                    this.delayedBlockDeque.offer(delayedBlock);
+                    delayedBlock.page = null;
+                    delayedBlock.block = null;
+                    delayedBlock.nextDelayedBlock = null;
+                    this.delayedBlockDeque.offer(delayedBlock);
                 }
                 delayedBlock = next;
             }
@@ -780,13 +780,12 @@ final class MiMallocByteBufAllocator {
 
         private DelayedBlock getDelayedBlock(Page page, Block block) {
             DelayedBlock delayedBlock;
-//            if ((delayedBlock = delayedBlockDeque.poll()) != null) {
-//                delayedBlock.page = page;
-//                delayedBlock.block = block;
-//            } else {
-//                delayedBlock =  new DelayedBlock(page, block);
-//            }
-            delayedBlock =  new DelayedBlock(page, block);
+            if ((delayedBlock = delayedBlockDeque.poll()) != null) {
+                delayedBlock.page = page;
+                delayedBlock.block = block;
+            } else {
+                delayedBlock =  new DelayedBlock(page, block);
+            }
             return delayedBlock;
         }
 
@@ -1413,9 +1412,9 @@ final class MiMallocByteBufAllocator {
             will first consider abandoned segments.
             ----------------------------------------------------------- */
 
-        /* -----------------------------------------------------------
-           Abandon segment/page
-        ----------------------------------------------------------- */
+            /* -----------------------------------------------------------
+               Abandon segment/page
+            ----------------------------------------------------------- */
         private void segmentAbandon(Segment segment) {
             // Remove the free spans from the free span queues.
             segmentClearFreeSpanFromQueue(segment);
@@ -1878,8 +1877,8 @@ final class MiMallocByteBufAllocator {
     }
 
     static final class DelayedBlock {
-        final Page page;
-        final Block block;
+        Page page;
+        Block block;
         private DelayedBlock nextDelayedBlock;
         DelayedBlock(Page page, Block block) {
             this.page = page;
@@ -1988,9 +1987,21 @@ final class MiMallocByteBufAllocator {
         LocalHeap ownerHeap = segment.ownerHeap;
         // If `segment.ownerThread == Thread.currentThread()`, means the current thread owns the `ownerHeap`,
         // so the `ownerHeap` must not have been abandoned, so `ownerHeap` must not be null.
-        if (segment.ownerThread == Thread.currentThread() && ownerHeap.sharedLock == null) {
-            // Event loop local free.
-            freeLocal(page, block, buf, ownerHeap);
+        if (segment.ownerThread == Thread.currentThread()) {
+            final StampedLock lock = ownerHeap.sharedLock;
+            if (lock == null) {
+                // Event loop local free.
+                freeLocal(page, block, buf, ownerHeap);
+            } else { // Allocation and deallocation are likely happens in the same thread.
+                // We acquire the lock exclusively on the shared deallocation path to improve memory reuse.
+                final long lockStamp = lock.writeLock();
+                try {
+                    // Successfully acquired the lock, use local free.
+                    freeLocal(page, block, buf, ownerHeap);
+                } finally {
+                    lock.unlockWrite(lockStamp);
+                }
+            }
         } else {
             StampedLock sharedLock;
             long lockStamp;
@@ -2048,11 +2059,11 @@ final class MiMallocByteBufAllocator {
         // `useDelayed` will only be true if `threadDelayedFreeFlag == USE_DELAYED_FREE`.
         if (useDelayed) {
             try {
-                DelayedBlock delayedBlock = new DelayedBlock(page, block);
                 // Racy read on `heap`, but ok because `DELAYED_FREEING` is set.
                 // (see `heapCollectAbandon`)
                 LocalHeap heap = page.segment.ownerHeap;
                 assert heap != null;
+                DelayedBlock delayedBlock = heap.getDelayedBlock(page, block);
                 // Add to the delayed free list of this heap.
                 DelayedBlock dfree;
                 do {
@@ -2128,9 +2139,7 @@ final class MiMallocByteBufAllocator {
                 StampedLock lock;
                 long lockStamp;
                 ableExpansion = currentHeapsScanLength < MAX_SHARED_HEAP_WRAPS_LENGTH;
-                int attempts = ableExpansion ?
-//                        Math.min(currentHeapsScanLength << 1, MAX_SHARED_HEAP_LOCK_SPIN_COUNT) :
-                        Math.max(1, Integer.numberOfTrailingZeros(~mask)) :
+                int attempts = ableExpansion ? Math.min(currentHeapsScanLength << 1, MAX_SHARED_HEAP_LOCK_SPIN_COUNT) :
                         MAX_SHARED_HEAP_LOCK_SPIN_COUNT;
                 for (int i = 0; i < attempts; i++) {
                     sharedHeapWrap = this.sharedHeapWraps[index + i & mask];
@@ -2246,7 +2255,7 @@ final class MiMallocByteBufAllocator {
 
     private static int pageBin(Page page) {
         return page.isInFull ? PAGE_QUEUE_BIN_FULL_INDEX : page.isHuge ?
-                                                           PAGE_QUEUE_BIN_LARGE_INDEX : pageQueueIndex(page.blockSize);
+                PAGE_QUEUE_BIN_LARGE_INDEX : pageQueueIndex(page.blockSize);
     }
 
     private static int toWordSize(int size) {
