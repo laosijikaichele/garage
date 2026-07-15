@@ -1878,8 +1878,8 @@ final class MiMallocByteBufAllocator {
     }
 
     static final class DelayedBlock {
-        Page page;
-        Block block;
+        final Page page;
+        final Block block;
         private DelayedBlock nextDelayedBlock;
         DelayedBlock(Page page, Block block) {
             this.page = page;
@@ -2048,11 +2048,11 @@ final class MiMallocByteBufAllocator {
         // `useDelayed` will only be true if `threadDelayedFreeFlag == USE_DELAYED_FREE`.
         if (useDelayed) {
             try {
+                DelayedBlock delayedBlock = new DelayedBlock(page, block);
                 // Racy read on `heap`, but ok because `DELAYED_FREEING` is set.
                 // (see `heapCollectAbandon`)
                 LocalHeap heap = page.segment.ownerHeap;
                 assert heap != null;
-                DelayedBlock delayedBlock = heap.getDelayedBlock(page, block);
                 // Add to the delayed free list of this heap.
                 DelayedBlock dfree;
                 do {
